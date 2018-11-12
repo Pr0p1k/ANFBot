@@ -1,16 +1,18 @@
 package P3212.ANFBot
 
 import com.rabbitmq.client.*
+import com.rabbitmq.jms.admin.RMQConnectionFactory
 import org.telegram.telegrambots.bots.TelegramLongPollingBot
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage
 import org.telegram.telegrambots.meta.api.objects.Update
 import java.lang.Exception
 import java.lang.IllegalStateException
 import javax.annotation.Resource
+import javax.jms.*
 
 class Bot : TelegramLongPollingBot() {
     private val token = "754140988:AAHSkm4XIO8TXMxvlU49JHJJtYPQprNlUJM"
-    private var currentChat: Long = -1
+    private val queueName = "bot"
     override fun getBotToken(): String {
         return token
     }
@@ -18,51 +20,46 @@ class Bot : TelegramLongPollingBot() {
 
     override fun onUpdateReceived(update: Update) {
         if (update.hasMessage() && update.message.hasText()) {
-            currentChat = update.message.chatId
+            val id = update.message.chatId;
             val list = update.message.text.toLowerCase().split(" ")
             when (list[0]) {
-                "/help", "help" -> answer("Available commands are:\n")
-                "/top", "top" -> request("top")
-                "/events", "events" -> request("events")
+                "/help", "help" -> answer("Available commands are:\n", id)
+                "/top", "top" -> request("top", id)
+                "/events", "events" -> request("events", id)
                 "/stats", "stats" ->
                     if (list.size == 2)
-                        request("stats ${list[1]}")
-                    else answer("Invalid command arguments")
-                else -> answer("Invalid command. Use /help for the commands list.")
+                        request("stats ${list[1]}", id)
+                    else answer("Invalid command arguments", id)
+                else -> answer("Invalid command. Use /help for the commands list.", id)
             }
         }
     }
 
-    private fun answer(message: String) {
-        execute(SendMessage(currentChat, message))
+    private fun request(msg: String, chatId: Long) {
+        val factory = RMQConnectionFactory()
+        factory.host = "localhost"
+        val con = factory.createConnection()
+        val session = con.createSession(false, Session.AUTO_ACKNOWLEDGE)
+        val producer = session.createProducer(session.createQueue("bot"))
+        con.start()
+        producer.send(session.createTextMessage(msg))
+        val consumer = session.createConsumer(session.createQueue("botResponse"))
+        val message = consumer.receive(3000)
+        answer((message as TextMessage).text, chatId)
+    }
+
+    private fun getResponse() {
 
     }
+
 
     override fun getBotUsername(): String? {
         return null
     }
 
-    private fun request(message: String) {
-        val factory = ConnectionFactory()
-        factory.host = "localhost"
-        val connection = factory.newConnection()
-        val channel = connection.createChannel()
-        channel.queueDeclare("requestQueue", false, false, false, null)
-        channel.basicPublish("", "requestQueue", null, message.toByteArray())
-        response()
+    private fun answer(msg: String, chatId: Long) {
+        val sendMessage = SendMessage(chatId, msg)
+        execute(sendMessage)
     }
 
-    private fun response() {
-        val factory = ConnectionFactory()
-        factory.host = "localhost"
-        val con = factory.newConnection()
-        val channel = con.createChannel()
-        val consumer = object : DefaultConsumer(channel) {
-            override fun handleDelivery(consumerTag: String?, envelope: Envelope?, properties: AMQP.BasicProperties?, body: ByteArray?) {
-                answer(String(body ?: ByteArray(0)))
-            }
-        }
-        channel.queueDeclare("responseQueue", false, false, false, null)
-        channel.basicConsume("responseQueue", true, consumer)
-    }
 }

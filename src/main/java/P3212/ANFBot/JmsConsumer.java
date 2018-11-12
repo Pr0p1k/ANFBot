@@ -5,14 +5,12 @@ import javax.jms.Message;
 import javax.jms.MessageConsumer;
 import javax.jms.TextMessage;
 
-public class JmsConsumer extends JmsBase
-{
-    private  final  int      timeout  = 30000;
+public class JmsConsumer extends JmsBase {
+    private final int timeout = 3000;
     private MessageConsumer consumer = null;
 
     @Override
-    protected void doAction()
-    {
+    protected void doAction() {
         Message message;
         try {
             consumer = session.createConsumer(destination);
@@ -26,8 +24,8 @@ public class JmsConsumer extends JmsBase
         }
         System.out.println("\nПросмотр JMS сообщений завершен\n");
     }
-    public JmsConsumer()
-    {
+
+    public JmsConsumer() {
         super();
         try {
             if (consumer != null)
@@ -36,8 +34,8 @@ public class JmsConsumer extends JmsBase
             recordFailure(jmsex);
         }
     }
-    public static void main(String[] args)
-    {
+
+    public static void main(String[] args) {
         new JmsConsumer();
         System.exit(status);
     }
