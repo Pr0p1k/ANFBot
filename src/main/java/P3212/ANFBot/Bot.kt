@@ -1,19 +1,13 @@
 package P3212.ANFBot
 
-import com.rabbitmq.client.*
 import com.rabbitmq.jms.admin.RMQConnectionFactory
 import org.telegram.telegrambots.bots.TelegramLongPollingBot
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage
 import org.telegram.telegrambots.meta.api.objects.Update
-import java.lang.Exception
-import java.lang.IllegalStateException
-import javax.annotation.Resource
 import javax.jms.*
-import javax.jms.ConnectionFactory
 
 class Bot : TelegramLongPollingBot() {
-    private val token = "754140988:AAHSkm4XIO8TXMxvlU49JHJJtYPQprNlUJM"
-    private val queueName = "bot"
+    private val token = "here should be token"
     private val factory = RMQConnectionFactory()
     private val con = factory.createConnection()
     private val session = con.createSession(false, Session.AUTO_ACKNOWLEDGE)
@@ -29,7 +23,7 @@ class Bot : TelegramLongPollingBot() {
 
     override fun onUpdateReceived(update: Update) {
         if (update.hasMessage() && update.message.hasText()) {
-            val id = update.message.chatId;
+            val id = update.message.chatId
             val list = update.message.text.split(" ")
             when (list[0].toLowerCase()) {
                 "/help", "help" -> answer("Available commands are:\n", id)
